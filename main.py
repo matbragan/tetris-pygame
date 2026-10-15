@@ -1,3 +1,4 @@
+import os
 from copy import deepcopy
 from random import choice, randrange
 
@@ -9,10 +10,31 @@ GAME_RES = W * TILE, H * TILE
 RES = 750, 940
 FPS = 60
 
+os.environ.setdefault('SDL_VIDEO_CENTERED', '1')
 pygame.init()
-sc = pygame.display.set_mode(RES)
+
+# abre a janela num tamanho que caiba na tela mesmo com a menu bar e o Dock
+info = pygame.display.Info()
+MARGIN = 120
+start_scale = min(1.0, (info.current_h - MARGIN) / RES[1], info.current_w / RES[0])
+window = pygame.display.set_mode(
+    (int(RES[0] * start_scale), int(RES[1] * start_scale)), pygame.RESIZABLE)
+
+# o jogo desenha sempre nesta superfície de tamanho fixo; a janela apenas exibe
+# uma versão escalada dela, então as coordenadas do jogo seguem válidas
+sc = pygame.Surface(RES)
 game_sc = pygame.Surface(GAME_RES)
 clock = pygame.time.Clock()
+
+
+def present():
+    w, h = window.get_size()
+    scale = min(w / RES[0], h / RES[1])
+    size = (max(1, int(RES[0] * scale)), max(1, int(RES[1] * scale)))
+    frame = sc if size == RES else pygame.transform.smoothscale(sc, size)
+    window.fill((0, 0, 0))
+    window.blit(frame, ((w - size[0]) // 2, (h - size[1]) // 2))
+    pygame.display.flip()
 
 grid = [pygame.Rect(x * TILE, y * TILE, TILE, TILE)
         for x in range(W) for y in range(H)]
@@ -183,8 +205,8 @@ while True:
             for i_rect in grid:
                 pygame.draw.rect(game_sc, get_color(), i_rect)
                 sc.blit(game_sc, (20, 20))
-                pygame.display.flip()
+                present()
                 clock.tick(200)
 
-    pygame.display.flip()
+    present()
     clock.tick(60)
